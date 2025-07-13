@@ -20,6 +20,14 @@ model User {
  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  tweets        Tweet[]
+  comments      Comment[]
+  likes         Like[]
+  
+  // Followers / Following relations (self-relation)
+  followers     Follower[] @relation("UserFollowers")
+  following     Follower[] @relation("UserFollowing")
 }
  
 model Account {
@@ -75,4 +83,52 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
  
   @@id([userId, credentialID])
+}
+
+model Tweet {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  authorId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       Like[]
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  authorId    String
+  tweetId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tweet       Tweet     @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id          String    @id @default(cuid())
+  userId      String
+  tweetId     String
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tweet       Tweet     @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tweetId]) // un user ne peut liker un tweet qu'une fois
+}
+
+model Follower {
+  id            String    @id @default(cuid())
+  followerId    String
+  followingId   String
+  createdAt     DateTime  @default(now())
+
+  follower      User      @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following     User      @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId]) // éviter doublons follow
 }
